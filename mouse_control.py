@@ -2,6 +2,7 @@ import gymnasium as gym
 import gym_pusht
 import pygame
 import numpy as np
+from gym_pusht.envs.pusht_obstacle import Vec2d
 
 def main():
     """
@@ -21,7 +22,8 @@ def main():
     # 初始化时钟以控制帧率
     clock = pygame.time.Clock()
     running = True
-    not_start = True   
+    teleop = False   # 替换 not_start 变量为 teleop
+    
     while running:
         # 处理 Pygame 事件
         for event in pygame.event.get():
@@ -31,30 +33,29 @@ def main():
                     break
                 elif event.key == pygame.K_r:  # 按 R 重置环境
                     observation, info = env.reset()
-                    last_action = None
+                    teleop = False
         
         if not running:
             break
             
         # 获取鼠标位置
         mouse_pos = pygame.mouse.get_pos()
+        # 直接使用鼠标坐标作为动作
+        mouse_position = Vec2d(*mouse_pos)
         
         # 计算鼠标位置与智能体位置的距离
-        
-        
-        if not_start:
-            agent_pos = observation[:2]  # 获取智能体位置（前两个维度）
-            distance = np.linalg.norm(np.array(mouse_pos) - agent_pos)
-            if distance < 10:
-                not_start = False
-        else:
-            action = np.array(mouse_pos, dtype=np.float32)
+        agent_pos = Vec2d(*observation[:2])
+        if teleop or (mouse_position - agent_pos).length < 30:
+            teleop = True
+            action = np.array([mouse_position.x, mouse_position.y], dtype=np.float32)
             observation, reward, terminated, truncated, info = env.step(action)        
             image = env.render()  
+            
             # 如果回合结束则重置环境
             if terminated or truncated:
                 observation, info = env.reset()
-                not_start = True         
+                teleop = False
+                
         # 控制帧率（10Hz） 
         clock.tick(10)
     
