@@ -37,7 +37,7 @@ def pymunk_to_shapely(body, shapes):
     return geom
 
 
-class PushTEnv(gym.Env):
+class PushTObstacleEnv(gym.Env):
     """
     ## Description
 
@@ -61,6 +61,7 @@ class PushTEnv(gym.Env):
         format). The values are in the range [0, 512]. See `get_keypoints` for a diagram showing the location of the
         keypoint indices.
     - `agent_pos`: A 2-dimensional vector representing the position of the robot end-effector.
+    - `obstacle_pos`: A 2-dimensional vector representing the position [x,y] of the obstacle.
 
     If `obs_type` is set to `pixels`, the observation space is a 96x96 RGB image of the environment.
 
@@ -201,6 +202,11 @@ class PushTEnv(gym.Env):
                         high=np.array([512, 512]),
                         dtype=np.float64,
                     ),
+                    "obstacle_pos": spaces.Box(
+                        low=np.array([0, 0]),
+                        high=np.array([512, 512]),
+                        dtype=np.float64,
+                    ),
                 },
             )
         elif self.obs_type == "pixels":
@@ -217,6 +223,11 @@ class PushTEnv(gym.Env):
                         dtype=np.uint8,
                     ),
                     "agent_pos": spaces.Box(
+                        low=np.array([0, 0]),
+                        high=np.array([512, 512]),
+                        dtype=np.float64,
+                    ),
+                    "obstacle_pos": spaces.Box(
                         low=np.array([0, 0]),
                         high=np.array([512, 512]),
                         dtype=np.float64,
@@ -276,16 +287,34 @@ class PushTEnv(gym.Env):
             rs = np.random.RandomState(seed=seed)
             state = np.array(
                 [
-                    rs.randint(50, 450),
-                    rs.randint(50, 450),
-                    rs.randint(100, 400),
-                    rs.randint(100, 400),
-                    rs.randn() * 2 * np.pi - np.pi,
+                    rs.randint(50, 450),  # agent x
+                    rs.randint(50, 450),  # agent y
+                    rs.randint(100, 400),  # block x
+                    rs.randint(100, 400),  # block y
+                    rs.randn() * 2 * np.pi - np.pi,  # block angle
                 ],
                 # dtype=np.float64
             )
         self._set_state(state)
-
+        
+        # 获取 agent 和 block 的位置
+        agent_pos = np.array(state[:2])
+        block_pos = np.array(state[2:4])
+        
+        # 计算 agent 和 block 之间的向量
+        direction = block_pos - agent_pos
+        distance = np.linalg.norm(direction)
+        
+        # 生成一个 0.3-0.7 之间的随机数，用于确定障碍物在路径上的相对位置
+        # 这样可以避免障碍物太靠近 agent 或 block
+        random_ratio = rs.uniform(0.3, 0.7)
+        
+        # 计算障碍物的位置
+        obstacle_pos = agent_pos + direction * random_ratio
+        
+        # 更新障碍物位置
+        self.obstacle.position = obstacle_pos.tolist()
+    
         observation = self.get_obs()
         info = self._get_info()
         info["is_success"] = False
@@ -391,6 +420,7 @@ class PushTEnv(gym.Env):
             return {
                 "environment_state": self.get_keypoints(self._block_shapes).flatten(),
                 "agent_pos": np.array(self.agent.position),
+                "obstacle_pos": np.array(self.obstacle.position),
             }
 
         pixels = self._render()
@@ -400,6 +430,7 @@ class PushTEnv(gym.Env):
             return {
                 "pixels": pixels,
                 "agent_pos": np.array(self.agent.position),
+                "obstacle_pos": np.array(self.obstacle.position),
             }
 
     @staticmethod
@@ -445,6 +476,8 @@ class PushTEnv(gym.Env):
 
         # Add agent, block, and goal zone
         self.agent = self.add_circle(self.space, (256, 400), 15)
+        # 将障碍物的初始位置设置在中间偏左的位置
+        self.obstacle = self.add_static_circle(self.space, (200, 256), 20)
         self.block, self._block_shapes = self.add_tee(self.space, (256, 300), 0)
         self.goal_pose = np.array([256, 256, np.pi / 4])  # x, y, theta (in radians)
         if self.block_cog is not None:
@@ -480,6 +513,16 @@ class PushTEnv(gym.Env):
         body.friction = 1
         shape = pymunk.Circle(body, radius)
         shape.color = pygame.Color("RoyalBlue")
+        space.add(body, shape)
+        return body
+
+    @staticmethod
+    def add_static_circle(space, position, radius):
+        body = pymunk.Body(body_type=pymunk.Body.STATIC)
+        body.position = position
+        body.friction = 1
+        shape = pymunk.Circle(body, radius)
+        shape.color = pygame.Color("FireBrick")
         space.add(body, shape)
         return body
 
