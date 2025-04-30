@@ -1,9 +1,7 @@
 # gym-pusht
-
 A gymnasium environment PushT with obstacle.
 
-<img src="http://remicadene.com/assets/gif/pusht_diffusion.gif" width="50%" alt="Diffusion policy on PushT env"/>
-
+![PushT with Obstacle](media/image.png)
 
 ## Installation
 
