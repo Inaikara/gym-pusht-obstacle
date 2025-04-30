@@ -287,10 +287,10 @@ class PushTObstacleEnv(gym.Env):
             rs = np.random.RandomState(seed=seed)
             state = np.array(
                 [
-                    rs.choice([rs.randint(50, 100), rs.randint(400, 450)]),  # agent x
-                    rs.choice([rs.randint(50, 100), rs.randint(400, 450)]),  # agent y
-                    rs.randint(100, 400),  # block x
-                    rs.randint(100, 400),  # block y
+                    rs.choice([rs.randint(30, 60), rs.randint(450, 480)]),  # agent x
+                    rs.choice([rs.randint(30, 60), rs.randint(450, 480)]),  # agent y
+                    rs.randint(200, 300),  # block x
+                    rs.randint(200, 300),  # block y
                     rs.randn() * 2 * np.pi - np.pi,  # block angle
                     rs.randint(50, 450),  # obstacle x
                     rs.randint(50, 450),  # obstacle y
@@ -300,7 +300,7 @@ class PushTObstacleEnv(gym.Env):
         agent_pos = state[:2]
         block_pos = state[2:4]
         direction = block_pos - agent_pos
-        random_ratio = np.random.uniform(0.3, 0.5)
+        random_ratio = np.random.uniform(0.2, 0.4)
         state[5:7] = agent_pos + direction * random_ratio
         self._set_state(state)
     
