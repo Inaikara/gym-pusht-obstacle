@@ -4,6 +4,7 @@ import pygame
 import numpy as np
 import h5py
 import os
+from visualize_demo import visualize_demo
 from datetime import datetime
 
 def main():
@@ -26,9 +27,13 @@ def main():
     running = True
     teleop = False
     
+    # 创建outputs文件夹（如果不存在）
+    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
+    os.makedirs(output_dir, exist_ok=True)
+    
     # 创建HDF5文件用于保存所有演示数据
     timestamp = datetime.now().strftime('%m%d%H%M%S')
-    h5_filename = f"pushT_image_{timestamp}.hdf5"
+    h5_filename = os.path.join(output_dir, f"pushT_image_{timestamp}.hdf5")
     h5_file = h5py.File(h5_filename, 'w')
     
     # 创建data组
@@ -79,11 +84,13 @@ def main():
                         running = False
                         break
                     elif event.key == pygame.K_r:  # 按 R 重置环境
-                        # 保存当前回合数据
-                        save_demo()
                         # 重置环境
                         observation, info = env.reset()
                         teleop = False
+                        # 重置回合数据
+                        actions.clear()
+                        for key in observations:
+                            observations[key].clear()
             
             if not running:
                 break
@@ -118,7 +125,9 @@ def main():
         # 确保在任何情况下都关闭HDF5文件
         h5_file.close()
         env.close()
-        print(f"共保存了{demo_count}个回合的数据到文件 {h5_filename}")
+        visualize_demo(h5_filename)
+        print(f"共保存了{demo_count}个回合的数据到文件 {h5_filename}") 
+        
 
 if __name__ == "__main__":
     main()
