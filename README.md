@@ -21,15 +21,19 @@ pip install h5py
 
 ## Usage
 
-PushT rule: The goal of the agent is to push the block to the goal zone. The agent is a circle and the block is a tee shape. Start with the mouse hovering over the blue dot. Press R to reset the environment. Press Q to quit.
+**PushT Rule:**
 
-PushT with obstacle rule: Same as PushT, but red obstacles are present. The environment will be reset when the blue dot touches the obstacle. Failed data will not be recorded.
+The goal of the agent is to push the block to the goal zone. The agent is a circle and the block is a tee shape. Start with the mouse hovering over the blue dot. Press R to reset the environment. Press Q to quit.
+
+**PushT with obstacle Rule:**
+
+Same as PushT, but red obstacles are present. The environment will be reset when the blue dot touches the obstacle. Failed data will not be recorded.
 
 `play.py` and `play_obs.py` are pushT and pushT with obstacle playgrounds.
 
 `collect.py` and `collect_obs.py` are data collection scripts, the datasets and videos will be saved in the `outputs` folder.
 
-How to run:
+**How to run:**
 
 ```bash
 conda activate pusht
