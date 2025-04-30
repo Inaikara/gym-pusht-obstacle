@@ -13,9 +13,9 @@ def main():
     - 按 'Q' 退出程序
     - 按 'R' 重新开始
     """
-    
 
-    env = gym.make("gym_pusht/PushT-v0", render_mode="human")
+    # 有障碍物
+    env = gym.make("gym_pusht/PushT-Obstacle", render_mode="human")
 
     observation, info = env.reset()
     

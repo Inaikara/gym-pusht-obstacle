@@ -4,6 +4,7 @@ import pygame
 import numpy as np
 import h5py
 import os
+from datetime import datetime
 
 def main():
     """
@@ -26,7 +27,8 @@ def main():
     teleop = False
     
     # 创建HDF5文件用于保存所有演示数据
-    h5_filename = "pusht_image.hdf5"
+    timestamp = datetime.now().strftime('%m%d%H%M%S')
+    h5_filename = f"pushT_image_{timestamp}.hdf5"
     h5_file = h5py.File(h5_filename, 'w')
     
     # 创建data组

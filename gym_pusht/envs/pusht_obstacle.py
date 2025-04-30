@@ -139,7 +139,7 @@ class PushTObstacleEnv(gym.Env):
         self,
         obs_type="state",
         render_mode="rgb_array",
-        obstacle_visible = True,
+        cover_obstacle = True,
         block_cog=None,
         damping=None,
         observation_width=96,
@@ -153,7 +153,7 @@ class PushTObstacleEnv(gym.Env):
 
         # Rendering
         self.render_mode = render_mode
-        self.obstacle_visible = obstacle_visible
+        self.cover_obstacle = cover_obstacle
         self.obstacle_size = 50
         self.agent_size = 15
         self.observation_width = observation_width
@@ -340,7 +340,7 @@ class PushTObstacleEnv(gym.Env):
 
         # Cover obstacle
         if cover_obstacle:
-            pygame.draw.circle(screen, pygame.Color("White"), center=self.obstacle.position, radius=self.obstacle_size)
+            pygame.draw.circle(screen, pygame.Color("White"), center=self.obstacle.position, radius=self.obstacle_size+2)
  
         return screen
 
@@ -390,11 +390,12 @@ class PushTObstacleEnv(gym.Env):
             pygame.event.pump()
             self.clock.tick(self.metadata["render_fps"] * int(1 / (self.dt * self.control_hz)))
             pygame.display.update()
-            if self.obstacle_visible:
-                return self._get_img(screen, width=width, height=height, render_action=visualize)
-            else:
-                screen_cover_obstacle = self._draw(cover_obstacle = True)
-                return self._get_img(screen_cover_obstacle, width=width, height=height, render_action=visualize)
+
+            # 输出掩盖障碍物
+            if self.cover_obstacle:
+                screen = self._draw(cover_obstacle = True)
+            
+            return self._get_img(screen, width=width, height=height, render_action=visualize)
         else:
             raise ValueError(self.render_mode)
 
