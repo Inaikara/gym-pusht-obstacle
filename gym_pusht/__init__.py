@@ -11,5 +11,5 @@ register(
     id="gym_pusht/PushT-Obstacle",
     entry_point="gym_pusht.envs:PushTObstacleEnv",
     max_episode_steps=300,
-    kwargs={"obs_type": "environment_state_agent_pos"},
+    kwargs={"obs_type": "pixels_agent_pos"},
 )

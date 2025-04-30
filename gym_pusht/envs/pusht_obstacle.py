@@ -139,6 +139,7 @@ class PushTObstacleEnv(gym.Env):
         self,
         obs_type="state",
         render_mode="rgb_array",
+        obstacle_visible = True,
         block_cog=None,
         damping=None,
         observation_width=96,
@@ -152,6 +153,9 @@ class PushTObstacleEnv(gym.Env):
 
         # Rendering
         self.render_mode = render_mode
+        self.obstacle_visible = obstacle_visible
+        self.obstacle_size = 30
+        self.agent_size = 15
         self.observation_width = observation_width
         self.observation_height = observation_height
         self.visualization_width = visualization_width
@@ -273,7 +277,11 @@ class PushTObstacleEnv(gym.Env):
         info["is_success"] = is_success
         info["coverage"] = coverage
 
+        # 检查碰撞
         truncated = False
+        if np.linalg.norm(self.agent.position - self.obstacle.position) < self.agent_size + self.obstacle_size:
+            truncated = True
+
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
@@ -313,7 +321,7 @@ class PushTObstacleEnv(gym.Env):
 
         return observation, info
 
-    def _draw(self):
+    def _draw(self,cover_obstacle = False):
         # Create a screen
         screen = pygame.Surface((512, 512))
         screen.fill((255, 255, 255))
@@ -329,6 +337,11 @@ class PushTObstacleEnv(gym.Env):
 
         # Draw agent and block
         self.space.debug_draw(draw_options)
+
+        # Cover obstacle
+        if cover_obstacle:
+            pygame.draw.circle(screen, pygame.Color("White"), center=self.obstacle.position, radius=self.obstacle_size)
+ 
         return screen
 
     def _get_img(self, screen, width, height, render_action=False):
@@ -377,6 +390,11 @@ class PushTObstacleEnv(gym.Env):
             pygame.event.pump()
             self.clock.tick(self.metadata["render_fps"] * int(1 / (self.dt * self.control_hz)))
             pygame.display.update()
+            if self.obstacle_visible:
+                return self._get_img(screen, width=width, height=height, render_action=visualize)
+            else:
+                screen_cover_obstacle = self._draw(cover_obstacle = True)
+                return self._get_img(screen_cover_obstacle, width=width, height=height, render_action=visualize)
         else:
             raise ValueError(self.render_mode)
 
@@ -466,9 +484,9 @@ class PushTObstacleEnv(gym.Env):
         self.space.add(*walls)
 
         # Add agent, block, and goal zone
-        self.agent = self.add_circle(self.space, (256, 400), 15)
+        self.agent = self.add_circle(self.space, (256, 400), self.agent_size)
         # 将障碍物的初始位置设置在中间偏左的位置
-        self.obstacle = self.add_static_circle(self.space, (200, 200), 30)
+        self.obstacle = self.add_static_circle(self.space, (200, 200),self.obstacle_size)
         self.block, self._block_shapes = self.add_tee(self.space, (256, 300), 0)
         self.goal_pose = np.array([256, 256, np.pi / 4])  # x, y, theta (in radians)
         if self.block_cog is not None:
