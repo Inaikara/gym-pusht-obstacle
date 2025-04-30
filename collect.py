@@ -2,7 +2,6 @@ import gymnasium as gym
 import gym_pusht
 import pygame
 import numpy as np
-from gym_pusht.envs.pusht_obstacle import Vec2d
 
 def main():
     """

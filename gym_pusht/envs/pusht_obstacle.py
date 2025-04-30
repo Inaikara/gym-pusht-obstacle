@@ -179,7 +179,7 @@ class PushTObstacleEnv(gym.Env):
         self.teleop = None
         self._last_action = None
 
-        self.success_threshold = 0.95  # 95% coverage
+        self.success_threshold = 0.9  # 90% coverage
 
     def _initialize_observation_space(self):
         if self.obs_type == "state":
@@ -300,7 +300,7 @@ class PushTObstacleEnv(gym.Env):
         agent_pos = state[:2]
         block_pos = state[2:4]
         direction = block_pos - agent_pos
-        random_ratio = np.random.uniform(0.2, 0.4)
+        random_ratio = np.random.uniform(0.3, 0.4)
         state[5:7] = agent_pos + direction * random_ratio
         self._set_state(state)
     
@@ -468,7 +468,7 @@ class PushTObstacleEnv(gym.Env):
         # Add agent, block, and goal zone
         self.agent = self.add_circle(self.space, (256, 400), 15)
         # 将障碍物的初始位置设置在中间偏左的位置
-        self.obstacle = self.add_static_circle(self.space, (200, 200), 20)
+        self.obstacle = self.add_static_circle(self.space, (200, 200), 30)
         self.block, self._block_shapes = self.add_tee(self.space, (256, 300), 0)
         self.goal_pose = np.array([256, 256, np.pi / 4])  # x, y, theta (in radians)
         if self.block_cog is not None:
@@ -572,4 +572,4 @@ class PushTObstacleEnv(gym.Env):
                 v = v.rotated(shape.body.angle)
                 v = v + shape.body.position
                 keypoints.append(np.array(v))
-        return np.row_stack(keypoints)
+        return np.vstack(keypoints)
