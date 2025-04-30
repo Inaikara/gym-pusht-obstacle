@@ -183,10 +183,10 @@ class PushTObstacleEnv(gym.Env):
 
     def _initialize_observation_space(self):
         if self.obs_type == "state":
-            # [agent_x, agent_y, block_x, block_y, block_angle]
+            # [agent_x, agent_y, block_x, block_y, block_angle, obstacle_x, obstacle_y]
             self.observation_space = spaces.Box(
-                low=np.array([0, 0, 0, 0, 0]),
-                high=np.array([512, 512, 512, 512, 2 * np.pi]),
+                low=np.array([0, 0, 0, 0, 0, 0, 0]),
+                high=np.array([512, 512, 512, 512, 2 * np.pi, 512, 512]),
                 dtype=np.float64,
             )
         elif self.obs_type == "environment_state_agent_pos":
@@ -287,33 +287,22 @@ class PushTObstacleEnv(gym.Env):
             rs = np.random.RandomState(seed=seed)
             state = np.array(
                 [
-                    rs.randint(50, 450),  # agent x
-                    rs.randint(50, 450),  # agent y
+                    rs.choice([rs.randint(50, 100), rs.randint(400, 450)]),  # agent x
+                    rs.choice([rs.randint(50, 100), rs.randint(400, 450)]),  # agent y
                     rs.randint(100, 400),  # block x
                     rs.randint(100, 400),  # block y
                     rs.randn() * 2 * np.pi - np.pi,  # block angle
+                    rs.randint(50, 450),  # obstacle x
+                    rs.randint(50, 450),  # obstacle y
                 ],
                 # dtype=np.float64
             )
-        self._set_state(state)
-        
-        # 获取 agent 和 block 的位置
-        agent_pos = np.array(state[:2])
-        block_pos = np.array(state[2:4])
-        
-        # 计算 agent 和 block 之间的向量
+        agent_pos = state[:2]
+        block_pos = state[2:4]
         direction = block_pos - agent_pos
-        distance = np.linalg.norm(direction)
-        
-        # 生成一个 0.3-0.7 之间的随机数，用于确定障碍物在路径上的相对位置
-        # 这样可以避免障碍物太靠近 agent 或 block
-        random_ratio = rs.uniform(0.3, 0.7)
-        
-        # 计算障碍物的位置
-        obstacle_pos = agent_pos + direction * random_ratio
-        
-        # 更新障碍物位置
-        self.obstacle.position = obstacle_pos.tolist()
+        random_ratio = np.random.uniform(0.3, 0.5)
+        state[5:7] = agent_pos + direction * random_ratio
+        self._set_state(state)
     
         observation = self.get_obs()
         info = self._get_info()
@@ -414,7 +403,8 @@ class PushTObstacleEnv(gym.Env):
             agent_position = np.array(self.agent.position)
             block_position = np.array(self.block.position)
             block_angle = self.block.angle % (2 * np.pi)
-            return np.concatenate([agent_position, block_position, [block_angle]], dtype=np.float64)
+            obstacle_position = np.array(self.obstacle.position)
+            return np.concatenate([agent_position, block_position, [block_angle],obstacle_position], dtype=np.float64)
 
         if self.obs_type == "environment_state_agent_pos":
             return {
@@ -453,6 +443,7 @@ class PushTObstacleEnv(gym.Env):
             "block_pose": np.array(list(self.block.position) + [self.block.angle]),
             "goal_pose": self.goal_pose,
             "n_contacts": n_contact_points_per_step,
+            "pos_obstacle": np.array(self.obstacle.position),
         }
         return info
 
@@ -477,7 +468,7 @@ class PushTObstacleEnv(gym.Env):
         # Add agent, block, and goal zone
         self.agent = self.add_circle(self.space, (256, 400), 15)
         # 将障碍物的初始位置设置在中间偏左的位置
-        self.obstacle = self.add_static_circle(self.space, (200, 256), 20)
+        self.obstacle = self.add_static_circle(self.space, (200, 200), 20)
         self.block, self._block_shapes = self.add_tee(self.space, (256, 300), 0)
         self.goal_pose = np.array([256, 256, np.pi / 4])  # x, y, theta (in radians)
         if self.block_cog is not None:
@@ -495,7 +486,7 @@ class PushTObstacleEnv(gym.Env):
         # we do the opposite.
         self.block.position = list(state[2:4])
         self.block.angle = state[4]
-
+        self.obstacle.position = list(state[5:7])
         # Run physics to take effect
         self.space.step(self.dt)
 
@@ -518,7 +509,7 @@ class PushTObstacleEnv(gym.Env):
 
     @staticmethod
     def add_static_circle(space, position, radius):
-        body = pymunk.Body(body_type=pymunk.Body.STATIC)
+        body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
         body.position = position
         body.friction = 1
         shape = pymunk.Circle(body, radius)

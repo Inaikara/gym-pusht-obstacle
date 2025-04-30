@@ -15,8 +15,10 @@ def main():
     - 按 'R' 重新开始
     """
     
-    # 创建环境
+    # 无障碍物
     # env = gym.make("gym_pusht/PushT-v0", render_mode="human")
+
+    # 有障碍物
     env = gym.make("gym_pusht/PushT-Obstacle", render_mode="human")
 
     observation, info = env.reset()
@@ -24,7 +26,7 @@ def main():
     # 初始化时钟以控制帧率
     clock = pygame.time.Clock()
     running = True
-    teleop = False   # 替换 not_start 变量为 teleop
+    teleop = False  
     
     while running:
         # 处理 Pygame 事件
@@ -42,14 +44,12 @@ def main():
             
         # 获取鼠标位置
         mouse_pos = pygame.mouse.get_pos()
-        # 直接使用鼠标坐标作为动作
-        mouse_position = Vec2d(*mouse_pos)
+        agent_pos = info['pos_agent']
+        distance = np.linalg.norm(mouse_pos - agent_pos)
         
-        # 计算鼠标位置与智能体位置的距离
-        agent_pos = Vec2d(*observation['agent_pos'][:2])
-        if teleop or (mouse_position - agent_pos).length < 30:
+        if teleop or distance < 30:
             teleop = True
-            action = np.array([mouse_position.x, mouse_position.y], dtype=np.float32)
+            action = mouse_pos
             observation, reward, terminated, truncated, info = env.step(action)        
             image = env.render()  
             
