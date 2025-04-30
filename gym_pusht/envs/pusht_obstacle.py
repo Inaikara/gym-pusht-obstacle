@@ -154,7 +154,7 @@ class PushTObstacleEnv(gym.Env):
         # Rendering
         self.render_mode = render_mode
         self.obstacle_visible = obstacle_visible
-        self.obstacle_size = 30
+        self.obstacle_size = 50
         self.agent_size = 15
         self.observation_width = observation_width
         self.observation_height = observation_height

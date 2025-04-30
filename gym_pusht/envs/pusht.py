@@ -178,7 +178,7 @@ class PushTEnv(gym.Env):
         self.teleop = None
         self._last_action = None
 
-        self.success_threshold = 0.95  # 95% coverage
+        self.success_threshold = 0.9  # 90% coverage
 
     def _initialize_observation_space(self):
         if self.obs_type == "state":
@@ -276,11 +276,11 @@ class PushTEnv(gym.Env):
             rs = np.random.RandomState(seed=seed)
             state = np.array(
                 [
-                    rs.randint(50, 450),
-                    rs.randint(50, 450),
-                    rs.randint(100, 400),
-                    rs.randint(100, 400),
-                    rs.randn() * 2 * np.pi - np.pi,
+                    rs.choice([rs.randint(30, 60), rs.randint(450, 480)]),  # agent x
+                    rs.choice([rs.randint(30, 60), rs.randint(450, 480)]),  # agent y
+                    rs.randint(200, 300),  # block x
+                    rs.randint(200, 300),  # block y
+                    rs.randn() * 2 * np.pi - np.pi,  # block angle
                 ],
                 # dtype=np.float64
             )
@@ -359,6 +359,7 @@ class PushTEnv(gym.Env):
             pygame.event.pump()
             self.clock.tick(self.metadata["render_fps"] * int(1 / (self.dt * self.control_hz)))
             pygame.display.update()
+            return self._get_img(screen, width=width, height=height, render_action=visualize)
         else:
             raise ValueError(self.render_mode)
 

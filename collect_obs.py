@@ -15,8 +15,8 @@ def main():
     - 按 'Q' 退出程序
     - 按 'R' 重新开始
     """
-    
-    env = gym.make("gym_pusht/PushT-v0", render_mode="human")
+
+    env = gym.make("gym_pusht/PushT-Obstacle", render_mode="human",obstacle_visible = False)
 
     observation, info = env.reset()
     
@@ -26,7 +26,7 @@ def main():
     teleop = False
     
     # 创建HDF5文件用于保存所有演示数据
-    h5_filename = "pusht_image.hdf5"
+    h5_filename = "pusht_image_obs.hdf5"
     h5_file = h5py.File(h5_filename, 'w')
     
     # 创建data组
@@ -39,6 +39,7 @@ def main():
     actions = []
     observations = {
         'pixels': [],
+        'obstacle_pos': []
     }
     
     def save_demo():
@@ -60,7 +61,7 @@ def main():
             if observations[key]:  # 确保有数据
                 obs_group.create_dataset(key, data=np.array(observations[key]))
         
-        print(f"保存了demo_{demo_count}，共{len(actions)}个时间步")
+        print(f"保存了demo_{demo_count}")
         
         # 重置数据并增加demo计数
         actions.clear()
@@ -98,6 +99,7 @@ def main():
                 
                 # 保存数据
                 observations['pixels'].append(observation.get('pixels', np.zeros((96, 96, 3), dtype=np.uint8)))
+                observations['obstacle_pos'].append(info.get('pos_obstacle', np.zeros(2)))
                 actions.append(info.get('pos_agent', np.zeros(2)))
                 
                 # 渲染环境
