@@ -27,12 +27,12 @@ def main():
     teleop = False
     
     # 创建outputs文件夹（如果不存在）
-    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
+    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs/base")
     os.makedirs(output_dir, exist_ok=True)
     
     # 创建zarr文件用于保存所有演示数据
     timestamp = datetime.now().strftime('%m%d%H%M%S')
-    zarr_path = os.path.join(output_dir, f"pushT_image_{timestamp}.zarr")
+    zarr_path = os.path.join(output_dir, f"pushT_base_{timestamp}.zarr")
     root = zarr.open(zarr_path, mode='w')
     
     # 用于存储每个回合的数据

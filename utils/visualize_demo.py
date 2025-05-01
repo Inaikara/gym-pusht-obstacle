@@ -60,4 +60,4 @@ def visualize_demo(zarr_path: str):
     print(f"\n\n处理完成，视频已保存为 {output_filename}")
 
 if __name__ == "__main__":
-    visualize_demo("outputs/pushT_image_obs_0501145900.zarr")
+    visualize_demo("outputs/base/pusht_base.zarr")
