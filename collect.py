@@ -2,9 +2,9 @@ import gymnasium as gym
 import gym_pusht
 import pygame
 import numpy as np
-import h5py
+import zarr
 import os
-from visualize_demo import visualize_demo
+from utils.visualize_demo import visualize_demo
 from datetime import datetime
 
 def main():
@@ -19,7 +19,6 @@ def main():
     """
     
     env = gym.make("gym_pusht/PushT-v0", render_mode="human")
-
     observation, info = env.reset()
     
     # 初始化时钟以控制帧率
@@ -31,48 +30,40 @@ def main():
     output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
     os.makedirs(output_dir, exist_ok=True)
     
-    # 创建HDF5文件用于保存所有演示数据
+    # 创建zarr文件用于保存所有演示数据
     timestamp = datetime.now().strftime('%m%d%H%M%S')
-    h5_filename = os.path.join(output_dir, f"pushT_image_{timestamp}.hdf5")
-    h5_file = h5py.File(h5_filename, 'w')
-    
-    # 创建data组
-    data_group = h5_file.create_group("data")
+    zarr_path = os.path.join(output_dir, f"pushT_image_{timestamp}.zarr")
+    root = zarr.open(zarr_path, mode='w')
     
     # 用于存储每个回合的数据
     demo_count = 0
-    
-    # 当前回合的数据
-    actions = []
-    observations = {
-        'pixels': [],
-    }
+    all_actions = []
+    all_states = []
+    all_images = []
     
     def save_demo():
-        nonlocal actions, observations, demo_count, data_group
+        nonlocal demo_count, all_actions, all_states, all_images
         
-        if len(actions) == 0:
+        if len(all_actions) == 0:
             return
             
-        # 创建新的demo组
-        demo_group = data_group.create_group(f"demo_{demo_count}")
+        # 如果是第一个demo，创建数据集
+        if demo_count == 0:
+            root.create_dataset('action', data=np.array(all_actions), chunks=True, dtype=np.float32)
+            root.create_dataset('state', data=np.array(all_states), chunks=True, dtype=np.float32)
+            root.create_dataset('img', data=np.array(all_images), chunks=True, dtype=np.uint8)
+        else:
+            # 追加数据到已有数据集
+            root['action'].append(np.array(all_actions))
+            root['state'].append(np.array(all_states))
+            root['img'].append(np.array(all_images))
         
-        # 保存actions
-        actions_array = np.array(actions)
-        demo_group.create_dataset("actions", data=actions_array)
-        
-        # 保存obs
-        obs_group = demo_group.create_group("obs")
-        for key in observations:
-            if observations[key]:  # 确保有数据
-                obs_group.create_dataset(key, data=np.array(observations[key]))
-        
-        print(f"保存了demo_{demo_count}，共{len(actions)}个时间步")
+        print(f"保存了demo_{demo_count}")
         
         # 重置数据并增加demo计数
-        actions.clear()
-        for key in observations:
-            observations[key].clear()
+        all_actions.clear()
+        all_states.clear()
+        all_images.clear()
         demo_count += 1
     
     try:
@@ -84,13 +75,11 @@ def main():
                         running = False
                         break
                     elif event.key == pygame.K_r:  # 按 R 重置环境
-                        # 重置环境
                         observation, info = env.reset()
                         teleop = False
-                        # 重置回合数据
-                        actions.clear()
-                        for key in observations:
-                            observations[key].clear()
+                        all_actions.clear()
+                        all_states.clear()
+                        all_images.clear()
             
             if not running:
                 break
@@ -105,9 +94,12 @@ def main():
                 # 执行动作
                 observation, reward, terminated, truncated, info = env.step(action)
                 
-                # 保存数据
-                observations['pixels'].append(observation.get('pixels', np.zeros((96, 96, 3), dtype=np.uint8)))
-                actions.append(info.get('pos_agent', np.zeros(2)))
+                # 保存观测
+                all_images.append(observation.get('pixels', np.zeros((96, 96, 3), dtype=np.uint8)))
+                # 保存agent_pos作为state
+                state = info.get('pos_agent', np.zeros(2))
+                all_states.append(state)
+                all_actions.append(action)
                 
                 # 渲染环境
                 image = env.render()
@@ -122,12 +114,10 @@ def main():
             # 控制帧率（10Hz） 
             clock.tick(10)
     finally:
-        # 确保在任何情况下都关闭HDF5文件
-        h5_file.close()
+        # zarr doesn't need explicit closing
         env.close()
-        visualize_demo(h5_filename)
-        print(f"共保存了{demo_count}个回合的数据到文件 {h5_filename}") 
-        
+        visualize_demo(zarr_path)
+        print(f"共保存了{demo_count}个回合的数据到文件 {zarr_path}")
 
 if __name__ == "__main__":
     main()

@@ -10,13 +10,10 @@ Create a virtual environment with Python 3.10 and activate it, e.g. with [`minic
 conda create -y -n pusht python=3.10 && conda activate pusht
 ```
 
-Install gym-pusht:
+## Dependencies
+Install gym-pusht and zarr:
 ```bash
-pip install gym-pusht
-```
-Install h5py:
-```bash
-pip install h5py
+pip install gym-pusht zarr
 ```
 
 ## Usage
