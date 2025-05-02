@@ -3,6 +3,8 @@ import numpy as np
 import os
 import glob
 from typing import List
+from replay_buffer import ReplayBuffer
+from visualize_demo import visualize_demo
 
 def merge_zarr_files(input_paths: List[str], output_path: str):
     """
@@ -17,44 +19,39 @@ def merge_zarr_files(input_paths: List[str], output_path: str):
         if not os.path.exists(path):
             raise FileNotFoundError(f"找不到输入文件: {path}")
     
-    # 创建输出文件
-    root = zarr.open(output_path, mode='w')
-    
-    # 用于存储所有数据
-    all_actions = []
-    all_states = []
-    all_images = []
+    # 创建输出缓冲区
+    output_buffer = ReplayBuffer.create_empty_zarr()
     
     # 读取所有输入文件的数据
     for path in input_paths:
         print(f"正在读取: {path}")
-        input_data = zarr.open(path, mode='r')
+        # 使用ReplayBuffer加载数据
+        input_buffer = ReplayBuffer.create_from_path(path)
         
-        # 读取数据
-        actions = input_data['action'][:]
-        states = input_data['state'][:]
-        images = input_data['img'][:]
-        
-        # 添加到列表中
-        all_actions.append(actions)
-        all_states.append(states)
-        all_images.append(images)
-    
-    # 合并数据
-    merged_actions = np.concatenate(all_actions, axis=0)
-    merged_states = np.concatenate(all_states, axis=0)
-    merged_images = np.concatenate(all_images, axis=0)
+        # 遍历每个回合的数据并添加到输出缓冲区
+        for i in range(input_buffer.n_episodes):
+            episode_data = input_buffer.get_episode(i)
+            # 添加回合数据到输出缓冲区
+            output_buffer.add_episode(
+                data=episode_data,
+                chunks={
+                    'action': (32, 2),
+                    'state': (32, 4),
+                    'img': (32, 96, 96, 3)
+                },
+                compressors={
+                    'action': 'default',
+                    'state': 'default',
+                    'img': 'disk'  # 对图像数据使用更高压缩率
+                }
+            )
     
     # 保存合并后的数据
-    root.create_dataset('action', data=merged_actions, chunks=True, dtype=np.float32)
-    root.create_dataset('state', data=merged_states, chunks=True, dtype=np.float32)
-    root.create_dataset('img', data=merged_images, chunks=True, dtype=np.uint8)
+    output_buffer.save_to_path(output_path)
     
     print(f"\n合并完成！")
-    print(f"合并后的数据大小:")
-    print(f"- 动作数据: {merged_actions.shape}")
-    print(f"- 状态数据: {merged_states.shape}")
-    print(f"- 图像数据: {merged_images.shape}")
+    print(f"合并后的回合数: {output_buffer.n_episodes}")
+    print(f"合并后的总步数: {output_buffer.n_steps}")
 
 def main(type:str):
     """
@@ -78,7 +75,8 @@ def main(type:str):
     print(f"\n开始合并...")
     
     merge_zarr_files(zarr_files, output_path)
+    visualize_demo(output_path)
 
 if __name__ == "__main__":
-    type = "base" #obstacle
+    type = "obstacle" #obstacle
     main(type)

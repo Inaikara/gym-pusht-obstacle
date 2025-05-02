@@ -15,9 +15,14 @@ def visualize_demo(zarr_path: str):
     root = zarr.open(zarr_path, mode='r')
     
     # 获取数据集
-    actions = root['action'][:]* (96/512)
-    states = root['state'][:]
-    images = root['img'][:]
+    actions = root['data']['action'][:]* (96/512)
+    states = root['data']['state'][:]
+    images = root['data']['img'][:]
+    
+    # 打印图像信息
+    print(f"图像数据类型: {images.dtype}")
+    print(f"图像深度: {images[0].dtype}")
+    print(f"图像值范围: [{np.min(images)}, {np.max(images)}]")
     
     # 获取视频参数
     num_frames, height, width, channels = images.shape
@@ -60,4 +65,5 @@ def visualize_demo(zarr_path: str):
     print(f"\n\n处理完成，视频已保存为 {output_filename}")
 
 if __name__ == "__main__":
-    visualize_demo("outputs/base/pusht_base.zarr")
+    visualize_demo("outputs/base/pusht_cchi_v7_replay.zarr")
+    # visualize_demo("outputs/obstacle/pushT_obs_0502160927.zarr")

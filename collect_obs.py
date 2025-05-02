@@ -6,6 +6,7 @@ import zarr
 import os
 from utils.visualize_demo import visualize_demo
 from datetime import datetime
+from utils.replay_buffer import ReplayBuffer
 
 def main():
     """
@@ -33,38 +34,49 @@ def main():
     # 创建zarr文件用于保存所有演示数据
     timestamp = datetime.now().strftime('%m%d%H%M%S')
     zarr_path = os.path.join(output_dir, f"pushT_obs_{timestamp}.zarr")
-    root = zarr.open(zarr_path, mode='w')
+    
+    # 创建ReplayBuffer实例
+    buffer = ReplayBuffer.create_empty_zarr()
     
     # 用于存储每个回合的数据
-    demo_count = 0
     all_actions = []
     all_states = []
     all_images = []
     
     def save_demo():
-        nonlocal demo_count, all_actions, all_states, all_images
+        nonlocal all_actions, all_states, all_images
         
         if len(all_actions) == 0:
             return
             
-        # 如果是第一个demo，创建数据集
-        if demo_count == 0:
-            root.create_dataset('action', data=np.array(all_actions), chunks=True, dtype=np.float32)
-            root.create_dataset('state', data=np.array(all_states), chunks=True, dtype=np.float32)
-            root.create_dataset('img', data=np.array(all_images), chunks=True, dtype=np.uint8)
-        else:
-            # 追加数据到已有数据集
-            root['action'].append(np.array(all_actions))
-            root['state'].append(np.array(all_states))
-            root['img'].append(np.array(all_images))
+        # 将数据转换为numpy数组
+        episode_data = {
+            'action': np.array(all_actions, dtype=np.float32),
+            'state': np.array(all_states, dtype=np.float32),
+            'img': np.array(all_images, dtype=np.uint8)
+        }
         
-        print(f"保存了demo_{demo_count}")
+        # 使用ReplayBuffer的add_episode方法添加数据
+        buffer.add_episode(
+            data=episode_data,
+            chunks={
+                'action': (32, 2),
+                'state': (32, 4),
+                'img': (32, 96, 96, 3)
+            },
+            compressors={
+                'action': 'default',
+                'state': 'default',
+                'img': 'disk'  # 对图像数据使用更高压缩率
+            }
+        )
         
-        # 重置数据并增加demo计数
+        print(f"保存了第{buffer.n_episodes}个回合")
+        
+        # 重置数据
         all_actions.clear()
         all_states.clear()
         all_images.clear()
-        demo_count += 1
     
     try:
         while running:
@@ -109,6 +121,10 @@ def main():
                 
                 # 如果回合结束则重置环境
                 if terminated or truncated:
+                    if truncated:
+                        all_actions.clear()
+                        all_states.clear()
+                        all_images.clear()
                     if terminated:
                         save_demo()
                     observation, info = env.reset()
@@ -117,10 +133,11 @@ def main():
             # 控制帧率（10Hz） 
             clock.tick(10)
     finally:
-        # zarr doesn't need explicit closing
+        # 保存数据到文件
+        buffer.save_to_path(zarr_path)
         env.close()
         visualize_demo(zarr_path)
-        print(f"共保存了{demo_count}个回合的数据到文件 {zarr_path}")
+        print(f"共保存了{buffer.n_episodes}个回合的数据到文件 {zarr_path}")
 
 if __name__ == "__main__":
     main()
