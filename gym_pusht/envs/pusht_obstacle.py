@@ -291,8 +291,8 @@ class PushTObstacleEnv(gym.Env):
         if options is not None and options.get("reset_to_state") is not None:
             state = np.array(options.get("reset_to_state"))
         else:
-            # state = self.np_random.uniform(low=[50, 50, 100, 100, -np.pi], high=[450, 450, 400, 400, np.pi])
             rs = np.random.RandomState(seed=seed)
+            # 首先创建智能体和方块的状态
             state = np.array(
                 [
                     rs.choice([rs.randint(30, 60), rs.randint(450, 480)]),  # agent x
@@ -300,16 +300,23 @@ class PushTObstacleEnv(gym.Env):
                     rs.randint(200, 300),  # block x
                     rs.randint(200, 300),  # block y
                     rs.randn() * 2 * np.pi - np.pi,  # block angle
-                    rs.randint(50, 450),  # obstacle x
-                    rs.randint(50, 450),  # obstacle y
                 ],
-                # dtype=np.float64
             )
-        agent_pos = state[:2]
-        block_pos = state[2:4]
-        direction = block_pos - agent_pos
-        random_ratio = np.random.uniform(0.3, 0.4)
-        state[5:7] = agent_pos + direction * random_ratio
+            
+            # 获取智能体和方块的位置
+            agent_pos = state[:2]
+            block_pos = state[2:4]
+            
+            # 计算从智能体到方块的方向向量
+            direction = block_pos - agent_pos
+            
+            # 在智能体到方块的路径上随机选择一个位置放置障碍物
+            random_ratio = np.random.uniform(0.3, 0.4)
+            obstacle_pos = agent_pos + direction * random_ratio
+            
+            # 将障碍物位置添加到状态数组中
+            state = np.append(state, obstacle_pos)
+
         self._set_state(state)
     
         observation = self.get_obs()

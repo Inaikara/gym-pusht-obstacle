@@ -66,7 +66,7 @@ def main(type:str):
         return
     
     # 创建输出文件名
-    output_path = os.path.join(input_dir, "pusht_"+type+".zarr")
+    output_path = os.path.join("outputs/", "pusht_"+type+".zarr")
     
     # 执行合并
     print(f"找到以下文件:")
@@ -75,8 +75,8 @@ def main(type:str):
     print(f"\n开始合并...")
     
     merge_zarr_files(zarr_files, output_path)
-    visualize_demo(output_path)
 
 if __name__ == "__main__":
-    type = "obstacle" #obstacle
+    # type = "base" #obstacle
+    type = "obstacle"
     main(type)
